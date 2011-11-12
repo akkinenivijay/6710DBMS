@@ -9,13 +9,14 @@ package DB;
  * @author pridhvi
  */
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -258,10 +259,14 @@ public class BookStoreDao {
 
 		try {
 			Statement stmt = con.createStatement();
-			stmt.executeUpdate(CartQuery);
+			int row = stmt.executeUpdate(CartQuery);
+			System.out.println("**************");
+			System.out.println(row);
 		} catch (SQLException e) {
 			e.printStackTrace();
 
+		} finally {
+			System.out.println("**************");
 		}
 
 	}
@@ -388,31 +393,123 @@ public class BookStoreDao {
 
 		String ClickCheckOutCart_Query = " select ISBN,QTY from cart where userid=\'"
 				+ CurrentUser.getInstance().getUserID() + "\'";
-		Random rand = new Random();
-		int ORDERNO = rand.nextInt();
+
+		String memeberDetailsQuery = "select * from members where userid=\'"
+				+ CurrentUser.getInstance().getUserID() + "\'";
+
+		HashMap<String, Integer> cartData = new HashMap<String, Integer>();
+
+		Statement stmt = null;
+
+		String ADDRESS = "";
+		String CITY = "";
+		int zip = 0;
+		String state = "";
+
+		System.out.println("Executing cart Addresss");
 
 		try {
-			Statement stmt = con.createStatement();
-			ResultSet rs = stmt.executeQuery(ClickCheckOutCart_Query);
+
+			stmt = con.createStatement();
+
+			ResultSet rs = stmt.executeQuery(memeberDetailsQuery);
 
 			while (rs.next()) {
-				String ISBN = rs.getString("ISBN");
-				int Quantity = rs.getInt("QTY");
-				double PRICE = CalcuatePrice(con, ISBN, Quantity);
-				String ODetails_Query = "INSERT INTO ODETAILS VALUES(" + "\'"
-						+ ORDERNO + "\'," + "\'" + ISBN + "\'," + Quantity
-						+ "," + PRICE + ")";
-				String Delete_Cart_Query = "delete from cart where userid=\'"
-						+ CurrentUser.getInstance().getUserID() + "\'"
-						+ "and ISBN=\'" + ISBN + "\'";
-				stmt.executeUpdate(ODetails_Query);
-				stmt.executeUpdate(Delete_Cart_Query);
-
+				ADDRESS = rs.getString("ADDRESS");
+				CITY = rs.getString("CITY");
+				zip = rs.getInt("ZIP");
+				state = rs.getString("STATE");
 			}
 			rs.close();
 			stmt.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
+		}
+
+		System.out.println("Executing cart querys");
+		try {
+
+			stmt = con.createStatement();
+
+			ResultSet rs = stmt.executeQuery(ClickCheckOutCart_Query);
+
+			while (rs.next()) {
+				String ISBN = rs.getString("ISBN");
+				int Quantity = rs.getInt("QTY");
+				cartData.put(ISBN, Quantity);
+			}
+			rs.close();
+			stmt.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		for (String isbn : cartData.keySet()) {
+			try {
+				stmt = con.createStatement();
+
+				DatabaseMetaData metaData = con.getMetaData();
+				System.out.println("Generated Keys Feature: "
+						+ metaData.supportsGetGeneratedKeys());
+
+				double PRICE = CalcuatePrice(con, isbn, cartData.get(isbn));
+
+				String INSERT_RECORD = "insert into ORDERS(USERID, RECEIVED,SHIPPED,SHIPADDRESS,SHIPCITY,SHIPSTATE,SHIPZIP) values(?,?,?,?,?,?,?)";
+				String[] cols = { "ONO" };
+				PreparedStatement ps = con.prepareStatement(INSERT_RECORD,
+						Statement.RETURN_GENERATED_KEYS);
+
+				// ps.setInt(1, ORDERNO);
+				ps.setString(1, CurrentUser.getInstance().getUserID());
+				ps.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
+				ps.setDate(3, new java.sql.Date(new java.util.Date().getTime()));
+				ps.setString(4, ADDRESS);
+				ps.setString(5, CITY);
+				ps.setString(6, state);
+				ps.setInt(7, zip);
+
+				int bool = ps.executeUpdate();
+
+				ResultSet rset = ps.getGeneratedKeys();
+				String ROWNUM = "";
+				while (rset.next()) {
+					ROWNUM = rset.getString(1);
+					System.out
+							.println("Autogeneraed order number from the sequence is: "
+									+ ROWNUM);
+				}
+
+				Statement sqlStatement = con.createStatement();
+				ResultSet rest = sqlStatement
+						.executeQuery("select * from orders where rowid = "
+								+ "\'" + ROWNUM + "\'" + " ");
+
+				rest.next();
+				int ORDERNO = rest.getInt("ONO");
+				System.out.println(ORDERNO);
+
+				String ODetails_Query = "INSERT INTO ODETAILS VALUES(" + "\'"
+						+ ORDERNO + "\'," + "\'" + isbn + "\',"
+						+ cartData.get(isbn) + "," + PRICE + ")";
+
+				String Delete_Cart_Query = "delete from cart where userid=\'"
+						+ CurrentUser.getInstance().getUserID() + "\'"
+						+ "and ISBN=\'" + isbn + "\'";
+				stmt.addBatch(ODetails_Query);
+				stmt.addBatch(Delete_Cart_Query);
+				int[] updateActions = stmt.executeBatch();
+
+				System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+				System.out.println(bool);
+				System.out.println(updateActions);
+				System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+
+				stmt.close();
+
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+			}
 		}
 
 	}
