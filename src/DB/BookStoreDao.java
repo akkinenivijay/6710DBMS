@@ -406,8 +406,6 @@ public class BookStoreDao {
 		int zip = 0;
 		String state = "";
 
-		System.out.println("Executing cart Addresss");
-
 		try {
 
 			stmt = con.createStatement();
@@ -426,7 +424,6 @@ public class BookStoreDao {
 			e.printStackTrace();
 		}
 
-		System.out.println("Executing cart querys");
 		try {
 
 			stmt = con.createStatement();
@@ -498,11 +495,6 @@ public class BookStoreDao {
 				stmt.addBatch(ODetails_Query);
 				stmt.addBatch(Delete_Cart_Query);
 				int[] updateActions = stmt.executeBatch();
-
-				System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
-				System.out.println(bool);
-				System.out.println(updateActions);
-				System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
 
 				stmt.close();
 
