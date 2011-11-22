@@ -956,8 +956,12 @@ public class BookStoreDao {
             e.printStackTrace();
         }
 
+<<<<<<< HEAD
 
     }
+=======
+		try {
+>>>>>>> branch 'master' of git@github.com:akkinenivijay/6710DBMS.git
 
     public static void viewOrEditPersonalInfoDAO(Connection con) {
     }
@@ -977,6 +981,7 @@ public class BookStoreDao {
             if (rs.next()) {
                 String useridFromDB = rs.getString("userid");
                 String passwordFromDB = rs.getString("password");
+		try {
 
                 if (userID.trim().equalsIgnoreCase(useridFromDB)
                         && password.trim().equalsIgnoreCase(passwordFromDB)) {
@@ -985,14 +990,14 @@ public class BookStoreDao {
                 } else {
                     valid = false;
                 }
-            }
-
-            rs.close();
-            stmt.close();
+            
         } catch (SQLException e) {
             e.printStackTrace();
             valid = false;
-        }
+        }finally {
+        	  rs.close();
+              stmt.close();
+}
         return valid;
     }
 
@@ -1050,6 +1055,7 @@ public class BookStoreDao {
                 System.out.println(ISBN + "        " + Title + "                                                " + ISBN_Price + "  " + Quantity + "   " + (Quantity * ISBN_Price));
                 Total_Order_Price = Total_Order_Price + (Quantity * ISBN_Price);
 
+<<<<<<< HEAD
             }
             System.out.println("-------------------------------------------------------------------------------");
             System.out.println("Total =                                                                  $" + Total_Order_Price);
@@ -1059,6 +1065,14 @@ public class BookStoreDao {
             stmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
+=======
+				String Delete_Cart_Query = "delete from cart where userid=\'"
+						+ CurrentUser.getInstance().getUserID() + "\'"
+						+ "and ISBN=\'" + isbn + "\'";
+				stmt.addBatch(ODetails_Query);
+				stmt.addBatch(Delete_Cart_Query);
+				int[] updateActions = stmt.executeBatch();
+>>>>>>> branch 'master' of git@github.com:akkinenivijay/6710DBMS.git
 
         }
 
