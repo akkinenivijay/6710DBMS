@@ -9,6 +9,8 @@ package DB;
  * @author pridhvi
  */
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class BookStoreHelper {
 
@@ -116,5 +118,45 @@ public class BookStoreHelper {
 
         return input;
 
+    }
+
+    public static int searchByAuthor_Title_Menu() {
+
+        System.out.println("\n           1. Author Search \n           2. Title Search \n           3.  Go Back to Member Menu");
+
+        boolean inputvalid = false;
+        int input = 0;
+        while (!inputvalid) {
+            String inpStr = BookStoreHelper.scanFromCommandLine("Type in your option: ");
+
+            try {
+                input = Integer.parseInt(inpStr);
+            } catch (NumberFormatException n) {
+                System.out.println("Please Enter a proper number among the options");
+            }
+            if (input >= 1 && input <= 3) {
+                inputvalid = true;
+            } else {
+                System.out.println("Please enter a valid input from the above options:");
+            }
+
+        }
+
+        return input;
+
+
+    }
+
+    public static boolean StringTest(String input) {
+        boolean isString = false;
+        String str = input;
+        Pattern p = Pattern.compile("[a-zA-Z]*");
+        Matcher m = p.matcher(input);
+        if (m.matches()) {
+            isString = true;
+        } else {
+            isString = false;
+        }
+        return isString;
     }
 }
