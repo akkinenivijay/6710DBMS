@@ -220,6 +220,7 @@ class OnlineBookStore {
     }
 
     private static void checkOutFUN(Connection con) {
+        BookStoreDao.checkOutDAO(con);
     }
 
     private static void OneClickCheckOutFUN(Connection con) {
@@ -283,8 +284,7 @@ class OnlineBookStore {
             }
         }
 
-        boolean validCredentials = BookStoreDao.checkForValidCredentials(
-                userID, password, con);
+        boolean validCredentials = BookStoreDao.checkForValidCredentials(userID, password, con);
 
         if (validCredentials) {
 
