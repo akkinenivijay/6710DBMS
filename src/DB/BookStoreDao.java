@@ -485,13 +485,12 @@ public class BookStoreDao {
 
 
         if (inpStr1.equalsIgnoreCase("")) {
-            
         } else if (inpStr1.equalsIgnoreCase(
                 "e")) {
             ISBN = BookStoreHelper.scanFromCommandLine("Enter isbn of item:");
-            boolean validate_ISBN = validateISBN(con,ISBN);
+            boolean validate_ISBN = validateISBN(con, ISBN);
             if (validate_ISBN) {
-                EditCart(con,ISBN);
+                EditCart(con, ISBN);
             } else {
                 System.out.println("Please enter the correct ISBN number ");
             }
@@ -499,91 +498,14 @@ public class BookStoreDao {
         } else if (inpStr1.equalsIgnoreCase(
                 "d")) {
             ISBN = BookStoreHelper.scanFromCommandLine("Enter isbn of item:");
-            boolean validate_ISBN = validateISBN(con,ISBN);
+            boolean validate_ISBN = validateISBN(con, ISBN);
             if (validate_ISBN) {
-                DeleteFromCart(con,ISBN);
+                DeleteFromCart(con, ISBN);
             } else {
-                System.out.println("Please enter the correct ISBN number ");               
+                System.out.println("Please enter the correct ISBN number ");
             }
         }
-/*
 
-        try {
-
-            stmt = con.createStatement();
-
-            ResultSet rs = stmt.executeQuery(ClickCheckOutCart_Query);
-
-            while (rs.next()) {
-                String ISBN = rs.getString("ISBN");
-                int Quantity = rs.getInt("QTY");
-                cartData.put(ISBN, Quantity);
-            }
-            rs.close();
-            stmt.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        for (String isbn : cartData.keySet()) {
-            try {
-                stmt = con.createStatement();
-
-                DatabaseMetaData metaData = con.getMetaData();
-                System.out.println("Generated Keys Feature: "
-                        + metaData.supportsGetGeneratedKeys());
-
-                double PRICE = CalcuatePrice(con, isbn, cartData.get(isbn));
-
-                String INSERT_RECORD = "insert into ORDERS(USERID, RECEIVED,SHIPPED,SHIPADDRESS,SHIPCITY,SHIPSTATE,SHIPZIP) values(?,?,?,?,?,?,?)";
-                String[] cols = {"ONO"};
-                PreparedStatement ps = con.prepareStatement(INSERT_RECORD,
-                        Statement.RETURN_GENERATED_KEYS);
-
-                // ps.setInt(1, ORDERNO);
-                ps.setString(1, CurrentUser.getInstance().getUserID());
-                ps.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
-                ps.setDate(3, new java.sql.Date(new java.util.Date().getTime()));
-                ps.setString(4, ADDRESS);
-                ps.setString(5, CITY);
-                ps.setString(6, state);
-                ps.setInt(7, zip);
-
-                int bool = ps.executeUpdate();
-
-                ResultSet rset = ps.getGeneratedKeys();
-                String ROWNUM = "";
-                while (rset.next()) {
-                    ROWNUM = rset.getString(1);
-                    // System.out.println("Autogeneraed order number from the sequence is: "
-                    //        + ROWNUM);
-                }
-
-                Statement sqlStatement = con.createStatement();
-                ResultSet rest = sqlStatement.executeQuery("select * from orders where rowid = "
-                        + "\'" + ROWNUM + "\'" + " ");
-
-                rest.next();
-                ORDERNO = rest.getInt("ONO");
-
-                String ODetails_Query = "INSERT INTO ODETAILS VALUES(" + "\'"
-                        + ORDERNO + "\'," + "\'" + isbn + "\',"
-                        + cartData.get(isbn) + "," + PRICE + ")";
-
-                String Delete_Cart_Query = "delete from cart where userid=\'"
-                        + CurrentUser.getInstance().getUserID() + "\'"
-                        + "and ISBN=\'" + isbn + "\'";
-                stmt.addBatch(ODetails_Query);
-                stmt.addBatch(Delete_Cart_Query);
-                int[] updateActions = stmt.executeBatch();
-
-                stmt.close();
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } finally {
-            }
-        }*/
 
     }
 
@@ -697,12 +619,6 @@ public class BookStoreDao {
         } finally {
             try {
                 Names.close();
-
-
-
-
-
-
             } catch (SQLException ex) {
                 Logger.getLogger(BookStoreDao.class.getName()).log(
                         Level.SEVERE, null, ex);
@@ -785,6 +701,315 @@ public class BookStoreDao {
     }
 
     public static void checkOutDAO(Connection con) {
+        String ClickCheckOutCart_Query = " select ISBN,QTY from cart where userid=\'"
+                + CurrentUser.getInstance().getUserID() + "\'";
+
+        String memeberDetailsQuery = "select * from members where userid=\'"
+                + CurrentUser.getInstance().getUserID() + "\'";
+
+        HashMap<String, Integer> cartData = new HashMap<String, Integer>();
+
+        Statement stmt = null;
+        String SHIP_FirstName = "";
+        String SHIP_LastName = "";
+        String SHIP_ADDRESS = "";
+        String SHIP_CITY = "";
+        int SHIP_zip = 0;
+        String SHIP_state = "";
+
+        String FirstName = "";
+        String LastName = "";
+        String ADDRESS = "";
+        String CITY = "";
+        int zip = 0;
+        String state = "";
+        int ORDERNO = 0;
+
+        System.out.println("Current Cart Contents:");
+        BookStoreDao.FetchCartDetails(con);
+
+        try {
+
+            stmt = con.createStatement();
+
+            ResultSet rs = stmt.executeQuery(memeberDetailsQuery);
+
+            while (rs.next()) {
+                ADDRESS = rs.getString("ADDRESS");
+                CITY = rs.getString("CITY");
+                zip = rs.getInt("ZIP");
+                state = rs.getString("STATE");
+                FirstName = rs.getString("FNAME");
+                LastName = rs.getString("LNAME");
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        String Proceed_Checkout = "";
+        boolean Valid_Proceed_Checkout = false;
+        boolean Vaild_shippingAddress = false;
+        String Shipping_Address_NEW = "";
+
+        while (!Valid_Proceed_Checkout) {
+
+            Proceed_Checkout = BookStoreHelper.scanFromCommandLine("Proceed to check out(Y/N):");
+            if (Proceed_Checkout.equalsIgnoreCase("y")) {
+
+                while (!Vaild_shippingAddress) {
+
+                    Shipping_Address_NEW = BookStoreHelper.scanFromCommandLine("Do you want to enter new shipping address(y/n):");
+
+                    if (Shipping_Address_NEW.equalsIgnoreCase("y")) {
+
+                        SHIP_FirstName = BookStoreHelper.scanFromCommandLine("Enter firstname: ");
+                        while (SHIP_FirstName == null || SHIP_FirstName.equalsIgnoreCase("")) {
+                            System.out.println("Please input a valid First Name");
+                            SHIP_FirstName = BookStoreHelper.scanFromCommandLine("Enter firstname: ");
+                        }
+
+                        SHIP_LastName = BookStoreHelper.scanFromCommandLine("Enter last name: ");
+                        while (SHIP_LastName == null || SHIP_LastName.equalsIgnoreCase("")) {
+                            System.out.println("Please input a valid last Name");
+                            SHIP_LastName = BookStoreHelper.scanFromCommandLine("Enter last name: ");
+                        }
+
+                        boolean validAddress = false;
+                        while (!validAddress) {
+                            SHIP_ADDRESS = BookStoreHelper.scanFromCommandLine("Enter street address: ");
+                            if (SHIP_ADDRESS == null || SHIP_ADDRESS.equalsIgnoreCase("")) {
+                                validAddress = false;
+                                System.out.println("Please input a valid Street Address:");
+                            } else {
+                                validAddress = true;
+                            }
+                        }
+
+                        boolean validCity = false;
+
+                        while (!validCity) {
+                            SHIP_CITY = BookStoreHelper.scanFromCommandLine("Enter City: ");
+                            if (SHIP_CITY == null || SHIP_CITY.equalsIgnoreCase("")) {
+                                validCity = false;
+                                System.out.println("Please input a valid  city:");
+                            } else {
+                                validCity = true;
+                            }
+                        }
+
+                        boolean validState = false;
+                        while (!validState) {
+                            state = BookStoreHelper.scanFromCommandLine("Enter State: ");
+                            if (state == null || state.equalsIgnoreCase("")) {
+                                validState = false;
+                                System.out.println("Please input a valid  State:");
+                            } else {
+                                validState = true;
+                            }
+                        }
+
+                        boolean validZip = false;
+                        String ZIP = "";
+                        while (!validZip) {
+                            ZIP = BookStoreHelper.scanFromCommandLine("Enter Zip: ");
+                            if (ZIP == null || ZIP.equalsIgnoreCase("") || ZIP.trim().length() != 5) {
+                                validZip = false;
+                                System.out.println("Please input a valid  Zip:");
+                            } else {
+                                try {
+                                    SHIP_zip = Integer.parseInt(ZIP);
+                                    validZip = true;
+                                } catch (NumberFormatException nfe) {
+                                    System.out.println("Please input a valid  Zip:Should be digit characters");
+                                }
+                            }
+                        }
+                        boolean exit = false;
+
+                        while (!exit) {
+
+                            String creditProceed = BookStoreHelper.scanFromCommandLine("Do you wish to store credit card information(y/n):");
+
+                            boolean proceed = false;
+                            if (creditProceed != null) {
+                                if (creditProceed.equalsIgnoreCase("y")
+                                        || creditProceed.equalsIgnoreCase("n")) {
+                                    if (creditProceed.equalsIgnoreCase("y")) {
+                                        proceed = true;
+                                    }
+                                    if (creditProceed.equalsIgnoreCase("n")) {
+                                        proceed = false;
+                                    }
+                                    exit = true;
+                                } else {
+                                    proceed = false;
+                                }
+                            } else {
+                                proceed = false;
+                            }
+
+                            if (proceed) {
+
+                                boolean creditTypeValid = false;
+
+                                while (!creditTypeValid) {
+                                    String creditCardType = BookStoreHelper.scanFromCommandLine("Enter type of Credit Card(amex/visa):");
+
+                                    if (creditCardType != null) {
+                                        if (creditCardType.trim().equalsIgnoreCase("amex")
+                                                || creditCardType.trim().equalsIgnoreCase(
+                                                "visa")) {
+                                            creditTypeValid = true;
+                                        }
+                                    }
+
+                                    if (!creditTypeValid) {
+                                        System.out.println("Please enter a valid credit card type: SHould be wither amex or visa");
+                                    }
+                                }
+
+                                boolean creditCardNumberValid = false;
+
+                                while (!creditCardNumberValid) {
+
+                                    String creditCardNUmber = BookStoreHelper.scanFromCommandLine("Enter Credit Card Number:");
+
+                                    if (creditCardNUmber != null) {
+                                        if (creditCardNUmber.trim().length() == 16) {
+                                            try {
+                                                long cardNumber = Long.parseLong(creditCardNUmber);
+                                                creditCardNumberValid = true;
+                                            } catch (NumberFormatException e) {
+                                                creditCardNumberValid = false;
+                                            }
+                                        } else {
+                                            creditCardNumberValid = false;
+                                        }
+                                    }
+
+                                    if (!creditCardNumberValid) {
+                                        System.out.println("PLease input a valid credit card number: (Only Digits Allowed and should be of 16 characters");
+                                    }
+
+                                }
+
+                            }
+                        }
+                        Vaild_shippingAddress = true;
+
+                    } else if (Shipping_Address_NEW.equalsIgnoreCase("n")) {
+
+                        SHIP_FirstName = FirstName;
+                        SHIP_LastName = LastName;
+                        SHIP_CITY = CITY;
+                        SHIP_zip = zip;
+                        SHIP_state = state;
+                        Vaild_shippingAddress = true;
+
+                    } else {
+                        continue;
+                    }
+                }
+                try {
+
+                    stmt = con.createStatement();
+
+                    ResultSet rs = stmt.executeQuery(ClickCheckOutCart_Query);
+
+                    while (rs.next()) {
+                        String ISBN = rs.getString("ISBN");
+                        int Quantity = rs.getInt("QTY");
+                        cartData.put(ISBN, Quantity);
+                    }
+                    rs.close();
+                    stmt.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+
+                for (String isbn : cartData.keySet()) {
+                    try {
+                        stmt = con.createStatement();
+
+                        DatabaseMetaData metaData = con.getMetaData();
+                        System.out.println("Generated Keys Feature: "
+                                + metaData.supportsGetGeneratedKeys());
+
+                        double PRICE = CalcuatePrice(con, isbn, cartData.get(isbn));
+
+                        String INSERT_RECORD = "insert into ORDERS(USERID, RECEIVED,SHIPPED,SHIPADDRESS,SHIPCITY,SHIPSTATE,SHIPZIP) values(?,?,?,?,?,?,?)";
+                        String[] cols = {"ONO"};
+                        PreparedStatement ps = con.prepareStatement(INSERT_RECORD,
+                                Statement.RETURN_GENERATED_KEYS);
+
+                        // ps.setInt(1, ORDERNO);
+                        ps.setString(1, CurrentUser.getInstance().getUserID());
+                        ps.setDate(2, new java.sql.Date(new java.util.Date().getTime()));
+                        ps.setDate(3, new java.sql.Date(new java.util.Date().getTime()));
+                        ps.setString(4, SHIP_ADDRESS);
+                        ps.setString(5, SHIP_CITY);
+                        ps.setString(6, SHIP_state);
+                        ps.setInt(7, SHIP_zip);
+
+                        int bool = ps.executeUpdate();
+
+                        ResultSet rset = ps.getGeneratedKeys();
+                        String ROWNUM = "";
+                        while (rset.next()) {
+                            ROWNUM = rset.getString(1);
+                            // System.out.println("Autogeneraed order number from the sequence is: "
+                            //        + ROWNUM);
+                        }
+
+                        Statement sqlStatement = con.createStatement();
+                        ResultSet rest = sqlStatement.executeQuery("select * from orders where rowid = "
+                                + "\'" + ROWNUM + "\'" + " ");
+
+                        rest.next();
+                        ORDERNO = rest.getInt("ONO");
+
+                        String ODetails_Query = "INSERT INTO ODETAILS VALUES(" + "\'"
+                                + ORDERNO + "\'," + "\'" + isbn + "\',"
+                                + cartData.get(isbn) + "," + PRICE + ")";
+
+                        String Delete_Cart_Query = "delete from cart where userid=\'"
+                                + CurrentUser.getInstance().getUserID() + "\'"
+                                + "and ISBN=\'" + isbn + "\'";
+                        stmt.addBatch(ODetails_Query);
+                        stmt.addBatch(Delete_Cart_Query);
+                        int[] updateActions = stmt.executeBatch();
+
+                        stmt.close();
+
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    } finally {
+                    }
+                }
+
+                System.out.println("Invoice for Order no." + ORDERNO);
+                System.out.println("Shipping Address                    Billing address");
+                System.out.println("Name:     " + SHIP_FirstName + " " + SHIP_LastName + "           Name:     " + FirstName + " " + LastName);
+                System.out.println("Address:  " + SHIP_ADDRESS + "                      Address:  " + ADDRESS);
+                System.out.println("          " + SHIP_CITY + "                             " + CITY);
+                System.out.println("          " + SHIP_state + " " + SHIP_zip + "                            " + state + " " + zip);
+                System.out.println();
+                System.out.println();
+                FetchOrderDetails(con, ORDERNO);
+
+                Valid_Proceed_Checkout = true;
+            } else if (Proceed_Checkout.equalsIgnoreCase("n")) {
+
+                for (String isbn : cartData.keySet()) {
+                    BookStoreDao.DeleteFromCart(con, isbn);
+                }
+                Valid_Proceed_Checkout = true;
+                break;
+            }
+
+        }
     }
 
     public static void OneClickCheckOutDAO(Connection con) {
@@ -962,8 +1187,7 @@ public class BookStoreDao {
     public static void viewOrEditPersonalInfoDAO(Connection con) {
     }
 
-    static boolean checkForValidCredentials(String userID, String password,
-            Connection con) {
+    public static boolean checkForValidCredentials(String userID, String password, Connection con) {
         Statement stmt = null;
         ResultSet rs = null;
 
